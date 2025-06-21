@@ -11,12 +11,14 @@ fastapi = {extras = ["standard"], version = "^0.115.13"}
 pydantic-settings = "^2.9.1"
 pytest-cov = "^6.2.1"
 gevent = "^25.5.1"
+boto3 = "^1.38.40"
 
 
 [tool.poetry.group.dev.dependencies]
 taskipy = "^1.14.1"
 ruff = "^0.12.0"
 pytest-asyncio = "^1.0.0"
+boto3-stubs = {extras = ["s3"], version = "^1.38.41"}
 
 [tool.ruff]
 line-length = 79

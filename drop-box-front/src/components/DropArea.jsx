@@ -27,7 +27,7 @@ const DropArea = (
     const [isDraggin, setIsDraggin] = useState(false);
     useEffect(() => {
         onFilesAccepted(selectedFiles)
-    })
+    }, [selectedFiles, onFilesAccepted])
     const dragCounter = useRef(0);
     const handleClick = () => {
         fileInputRef.current.click();

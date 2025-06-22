@@ -22,3 +22,33 @@ class UnauthorizedOverWriteAttempt(MinioBaseException):
             message = f"{message} (Bucket: '{bucket}', Object: '{object_name}')"
 
         super().__init__(message)
+
+class UnexpectedPartCount(MinioBaseException):
+    '''
+    Levantada ao tentar finalizar um multipart upload conferindo o numero de 
+    partes
+    '''
+
+    DEFAULT_MESSAGE = 'Expected parts quantity differs from parts on bucket!'
+
+    def __init__ (
+            self,
+            message: str = None,
+            bucket: str = None,
+            upload_id: str = None,
+            part_count: int = None,
+            expected_part_count: int = None,
+            key: str = None
+        ):
+        if message is None:
+            message = self.DEFAULT_MESSAGE
+
+        if bucket and upload_id and key:
+            message = (
+                f"{message} (Bucket: '{bucket}', 'upload_id':"
+                f" {upload_id}, key: '{key}',"
+                f" 'expected parts: '{expected_part_count}'"
+                f" 'actual parts: '{part_count}"
+            )
+        
+        super().__init__(message)

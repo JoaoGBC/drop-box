@@ -3,6 +3,7 @@ import asyncio
 import boto3
 from botocore.exceptions import ClientError
 from .exceptions import UnauthorizedOverWriteAttempt
+
 from typing import Any, Coroutine, TypedDict, Literal
 from datetime import datetime, timezone
 
@@ -18,9 +19,10 @@ class SinglepartUploadLinksDict(TypedDict):
 
 
 class MultipartUploadLinksDict(TypedDict):
-    current_part_count: int
-    upload_id: str
     object_name: str
+    file_name: str
+    upload_id: str
+    current_part_count: int
     urls: list[ObjectStorageLinkDict]
 
 
@@ -97,7 +99,6 @@ async def generate_multipart_upload_urls(
     duration_seconds: int = 3600,
     upload_id: str | None = None,
 ) -> MultipartUploadLinksDict:
-    
     if not upload_id:
         try:
             init_upload_response = await asyncio.to_thread(
@@ -106,6 +107,8 @@ async def generate_multipart_upload_urls(
                 Key=file_name,
                 ContentType = content_type,
             )
+            breakpoint()
+            upload_id = init_upload_response.get('UploadId')
         except ClientError as e:
             ## TODO: Configurar erro na hierarquia do modulo para esse ponto
             ## e adicionar logs.
@@ -122,11 +125,12 @@ async def generate_multipart_upload_urls(
     return {
         'current_part_count' : part_range[1],
         'object_name': file_name,
+        'file_name': file_name,
         'upload_id' : init_upload_response.get('UploadId'),
         'urls': [
             {
                 'expires_at' : datetime.fromtimestamp(
-                    item.split('Expires=')[1], tz=timezone.utc
+                    int(item.split('Expires=')[1]), tz=timezone.utc
                 ),
                 'send_method' : 'PUT',
                 'url': item
@@ -174,7 +178,7 @@ async def generate_presigned_urls(
         content_type: str | None = None,
         overwrite_allowed: bool = False,
         duration_seconds: int = 3600,
-    ) -> Coroutine[Any, Any, SinglepartUploadLinksDict | MultipartUploadLinksDict]:
+    ) -> SinglepartUploadLinksDict | MultipartUploadLinksDict:
 
     if not overwrite_allowed:
         object_exists = await object_in_bucket(file_name=file_name, bucket_name=bucket_name)

@@ -169,5 +169,4 @@ async def generate_presigned_urls(
     overwrite_allowed: bool = False,
     duration_seconds: int = 3600
 ) -> SinglepartUploadLinksDict | MultipartUploadLinksDict:
-    
     ...

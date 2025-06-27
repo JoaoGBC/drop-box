@@ -1,9 +1,7 @@
 import asyncio
-import boto3
 from mypy_boto3_s3 import S3Client
 from botocore.exceptions import ClientError
-
-from drop_box.minIO.services.exceptions import UnexpectedPartCount
+from .exceptions import UnexpectedPartCount
 
     
     
@@ -47,7 +45,7 @@ async def _end_multipart_upload(
     upload_id: str,
     file_name: str,
     bucket_name: str,
-):
+) -> None:
     try:
         await asyncio.to_thread(
             client_b3.complete_multipart_upload,

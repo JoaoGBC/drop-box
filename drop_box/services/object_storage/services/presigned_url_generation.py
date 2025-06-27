@@ -42,6 +42,7 @@ client_b3 = boto3.client(
 
 
 async def object_in_bucket(
+    *,
     file_name: str,
     bucket_name: str,
 ) -> bool:
@@ -60,6 +61,7 @@ async def object_in_bucket(
     
 
 async def _generate_presigned_url_batch(
+    *,
     upload_id: str,
     bucket_name: str,
     file_name: str,
@@ -92,6 +94,7 @@ async def _generate_presigned_url_batch(
     
 
 async def generate_multipart_upload_urls(
+    *,
     file_name: str,
     bucket_name: str,
     content_type: str,
@@ -142,7 +145,8 @@ async def generate_multipart_upload_urls(
     ...
 
 async def generate_singlepart_upload_url(
-    file_name: str,
+    *,
+    file_name,
     bucket_name: str,
     duration_seconds: int,
 ) -> SinglepartUploadLinksDict:
@@ -171,14 +175,15 @@ async def generate_singlepart_upload_url(
 
 
 async def generate_presigned_urls(
-        file_name: str,
-        bucket_name: str,
-        part_range: tuple[int, int] | None = None,
-        upload_id: str | None = None,
-        content_type: str | None = None,
-        overwrite_allowed: bool = False,
-        duration_seconds: int = 3600,
-    ) -> SinglepartUploadLinksDict | MultipartUploadLinksDict:
+    *,
+    file_name: str,
+    bucket_name: str,
+    part_range: tuple[int, int] | None = None,
+    upload_id: str | None = None,
+    content_type: str | None = None,
+    overwrite_allowed: bool = False,
+    duration_seconds: int = 3600,
+) -> SinglepartUploadLinksDict | MultipartUploadLinksDict:
 
     if not overwrite_allowed:
         object_exists = await object_in_bucket(file_name=file_name, bucket_name=bucket_name)

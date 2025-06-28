@@ -1,45 +1,60 @@
-from fastapi import APIRouter
+from typing import Annotated
+from uuid import uuid4
+from fastapi import APIRouter, Depends, HTTPException
 
-from drop_box.minIO.schemas.upload_flow import UploadInfo
-from drop_box.minIO.services.presigned_url_generation import generate_presigned_urls
+from core.storage_dependencies import get_upload_service, get_upload_token
+from services.types import TokenPayload
+from schemas.upload_flow import UploadInfo
+from services.upload_service import UploadService
+from services.exceptions import (
+    UnauthorizedOverWriteAttempt,
+    UnauthorizedUrlPartRequest,
+)
+from .exceptions import unauthorized_url_part_exception
 
 
 
-minio_client_access_router = APIRouter(
-    prefix='/obs', tags=['MinIO Client Side']
+storage_router = APIRouter(
+    prefix='/obs', tags=['Object Storage for Client Side']
 )
 
 
-@minio_client_access_router.post('/upload')
-async def start_upload_flow(upload_info: UploadInfo):
-    '''
-    Inicia o fluxo de upload pelo client side,
-    retornando a(s) url(s) pre-assinada(s).
-    '''
-    try:
-        urls = await generate_presigned_urls(
-            file_name= upload_info.file_name,
-            bucket_name='app1-teste1',
-            content_type=upload_info.mime_type,
-            part_range=upload_info.part_range,
-            overwrite_allowed=False,
-            duration_seconds=3600
-        )
-        return urls
-    except Exception as e:
-        raise e
-    
+T_upload_service = Annotated[UploadService, Depends(get_upload_service)]
+T_upload_token = Annotated[TokenPayload, Depends(get_upload_token)]
 
-@minio_client_access_router.put('/end-multipart')
-async def end_multipart_upload(
-    upload_id: str,
-    file_name: str,
+@storage_router.post('/init_upload_flow')
+async def start_upload_flow(
+    upload_info: UploadInfo,
+    uploader: T_upload_service,
 ):
-    '''Finaliza o fluxo de um upload multipart'''
-    
-    if await end_multipart_upload(
-        upload_id=upload_id,
-        file_name=file_name,
-    ):
-        return {'message' : f'multipart upload completed. id: {upload_id}'}
-    
+    response = None
+    while not response:
+        try:
+            file_name = f'{uuid4()}__{upload_info.file_name}'
+            upload_ticket = await uploader.initiate_upload(
+                file_name=file_name,
+                file_size=upload_info.file_size,
+                content_type=upload_info.mime_type,
+                bucket_name='app1-teste1'
+            )
+        except UnauthorizedOverWriteAttempt as e:
+            raise unauthorized_url_part_exception
+    return upload_ticket
+
+
+
+@storage_router.post('/')
+async def get_urls(
+    upload_token: T_upload_token,
+    uploader: T_upload_service,
+    parts: list[int]
+):
+    try:
+        url_obj = await uploader.generate_url(
+            update_token=upload_token,
+            bucket_name='app1-teste1',
+            parts=parts,
+        )
+        return url_obj
+    except UnauthorizedUrlPartRequest:
+        raise unauthorized_url_part_exception

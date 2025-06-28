@@ -13,6 +13,7 @@ pytest-cov = "^6.2.1"
 gevent = "^25.5.1"
 boto3 = "^1.38.40"
 tzlocal = "^5.3.1"
+pyjwt = "^2.10.1"
 
 
 [tool.poetry.group.dev.dependencies]
@@ -43,7 +44,7 @@ concurrency = ["gevent"]
 [tool.taskipy.tasks]
 lint = 'ruff check .; ruff check . --diff'
 format = 'ruff check . --fix; ruff format .'
-run = 'fastapi dev drop_box/app.py'
+run = 'PYTHONPATH=drop_box fastapi dev drop_box/app.py'
 pre_test = 'task lint'
 test = 'pytest -s -x --cov=fast_zero -vv'
 post_test = 'coverage html'

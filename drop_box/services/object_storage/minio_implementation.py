@@ -1,9 +1,10 @@
 import asyncio
 from datetime import datetime, timedelta, timezone
+from typing import Iterable
 from mypy_boto3_s3 import S3Client
 from botocore.client import ClientError
 from tzlocal import get_localzone
-from drop_box.services.object_storage.interface import IStorageService
+from services.object_storage.interface import IStorageService
 from .exceptions import (
     UnauthorizedOverWriteAttempt,
     UnexpectedPartCount
@@ -14,10 +15,10 @@ class MinioStorageService(IStorageService):
     _NOT_FOUND = '404'
 
     def __init__(
-            self,
-            client: S3Client,
-            url_duration_seconds: int
-        ):
+        self,
+        client: S3Client,
+        url_duration_seconds: int
+    ):
         self._client = client
         self.url_duration_seconds = url_duration_seconds
 
@@ -34,8 +35,13 @@ class MinioStorageService(IStorageService):
         *,
         file_name,
         bucket_name: str,
-        duration_seconds: int,
+        allow_override: bool = False
     ) -> SinglepartUploadLinksDict:
+        if await self.object_in_bucket(
+                file_name=file_name,
+                bucket_name=bucket_name,
+            ) and not allow_override:
+            raise UnauthorizedOverWriteAttempt
         url = await asyncio.to_thread(
                 self._client.generate_presigned_url,
                 'put_object',
@@ -43,7 +49,7 @@ class MinioStorageService(IStorageService):
                     'Bucket': bucket_name,
                     'Key' : file_name,
                 },
-                ExpiresIn = duration_seconds
+                ExpiresIn = self.url_duration_seconds
             )
 
         return {
@@ -61,10 +67,16 @@ class MinioStorageService(IStorageService):
         file_name: str,
         bucket_name: str,
         content_type: str,
-        part_range: tuple[int, int],
-        duration_seconds: int = 3600,
+        parts: Iterable[int],
         upload_id: str | None = None,
+        allow_override: bool = False
     ) -> MultipartUploadLinksDict:
+        if await self.object_in_bucket(
+                file_name=file_name,
+                bucket_name=bucket_name,
+            ) and not allow_override:
+            raise UnauthorizedOverWriteAttempt
+        
         if not upload_id:
             try:
                 init_upload_response = await asyncio.to_thread(
@@ -73,7 +85,6 @@ class MinioStorageService(IStorageService):
                     Key=file_name,
                     ContentType = content_type,
                 )
-                breakpoint()
                 upload_id = init_upload_response.get('UploadId')
             except ClientError as e:
                 ## TODO: Configurar erro na hierarquia do modulo para esse ponto
@@ -84,12 +95,11 @@ class MinioStorageService(IStorageService):
             upload_id= upload_id,
             bucket_name=bucket_name,
             file_name=file_name,
-            part_range=part_range,
-            duration_seconds=duration_seconds
+            parts=parts,
+            duration_seconds=self.url_duration_seconds
         )
 
         return {
-            'current_part_count' : part_range[1],
             'object_name': file_name,
             'file_name': file_name,
             'upload_id' : init_upload_response.get('UploadId'),
@@ -128,7 +138,7 @@ class MinioStorageService(IStorageService):
         upload_id: str,
         bucket_name: str,
         file_name: str,
-        part_range: tuple[int, int],
+        parts: Iterable[int],
         duration_seconds: int,
     ) -> list[str]:
         '''
@@ -146,7 +156,7 @@ class MinioStorageService(IStorageService):
                 },
                 ExpiresIn = duration_seconds,
             ) for part_number in 
-            range(part_range[0], part_range[1]+1)
+            parts
         ]
 
         url_list = await asyncio.gather(*tasks)

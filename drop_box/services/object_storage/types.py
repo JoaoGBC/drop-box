@@ -16,5 +16,4 @@ class MultipartUploadLinksDict(TypedDict):
     object_name: str
     file_name: str
     upload_id: str
-    current_part_count: int
     urls: list[ObjectStorageLinkDict]

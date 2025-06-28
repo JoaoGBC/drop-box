@@ -12,6 +12,10 @@ class Settings(BaseSettings):
     ENDPOINT_OS: Annotated[str, 'Endpoint de acesso ao object storage']
     ACCESS_KEY_OS: Annotated[str, 'Id de acesso ao object storage']
     SECRET_KEY_OS: Annotated[str, 'Key/senha de acesso ao object storage']
+    ALLOWED_FILE_TYPES: str
+    MAX_SINGLEPART_UPLOAD_SIZE_BYTES: int
+    MULTIPART_CHUNK_SIZE_BYTES: int
+    SECRET_KEY_UPLOAD_SERVICE_TOKEN: str
 
 
 

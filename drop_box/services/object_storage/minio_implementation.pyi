@@ -1,13 +1,22 @@
-from typing import overload
+from typing import Iterable, overload
+
+from mypy_boto3_s3 import S3Client
 from .types import MultipartUploadLinksDict, SinglepartUploadLinksDict
 
 class MinioStorageService():
+    def __init__(
+        self,
+        client: S3Client,
+        url_duration_seconds: int
+    ):
+        ...
+        
     async def generate_multipart_upload_urls(
         self,
         *,
         file_name: str,
         bucket_name: str,
-        part_range: tuple[int, int],
+        parts: Iterable[int],
         content_type: str,
         upload_id: str | None = None,
         duration_seconds: int = 3600
@@ -16,10 +25,10 @@ class MinioStorageService():
         pre-asinadas. Se um upload_id é informado, apenas as urls são geradas,
         caso contrario, o upload-multipart será aberto e as urls serão geradas.
 
-        :param upload_id `str`:  Id do upload multipart para qual as urls serão geradas
         :param file_name `str`: Nome do objeto a ser salvo no bucket.
         :param bucket_name `str`: Bucket onde o objeto será salvo.
-        :param part_count `int`: Número de partes em que o arquivo será dividido.
+        :param parts `Iterable[int]`: Um iterable com o conjunto de partes que se quer gerar as urls.
+        :param upload_id `str`:  Id do upload multipart para qual as urls serão geradas
         :param duration_seconds `int`: Duração em segundos da validade das URLs.
         
         :raises botocore.exceptions.ClientError: Para erros de cliente do Boto3.
@@ -90,7 +99,7 @@ class MinioStorageService():
         file_name: str,
         bucket_name: str,
         content_type: str,
-        part_range: tuple[int, int],
+        part: Iterable[int],
         upload_id: str | None = None,
         overwrite_allowed: bool = False,
         duration_seconds: int = 3600
@@ -104,10 +113,10 @@ class MinioStorageService():
 
         :param file_name `str`: Nome do objeto a ser salvo no bucket.
         :param bucket_name `str`: Bucket onde o objeto será salvo.
-        :param part_range `tuple`: Tupla contendo o range de partes para as quais devem ser geradas/reemitidas as urls. O range é inclusivo tanto no inicio quanto fim, e deve conter exatamente 2 entidades.
-        :upload_id `str`: id do upload multipart em caso de emisão de urls para novas partes ou reemissão de partes.
         :content_type `str`: mimetype do objeto/arquivo.
-        :overwrite_allowed `bool`: se overwrites devem ser permitidos. Em caso de False levanta um erro UnauthorizedOverWriteAttempt.
+        :param parts `Iterable[int]`: Um iterable com o conjunto de partes que se quer gerar as urls.
+        :param upload_id `str`: id do upload multipart em caso de emisão de urls para novas partes ou reemissão de partes.
+        :param overwrite_allowed `bool`: se overwrites devem ser permitidos. Em caso de False levanta um erro UnauthorizedOverWriteAttempt.
         :param duration_seconds `int`: Duração em segundos da validade das URLs.
         :raises `UnauthorizedOverWriteAttempt`: Quando overwrite_allowed é False e o objeto já existe no bucket.
         :return `MultipartUploadLinksDict`: Um dicionário contendo os dados para o cliente iniciar o upload,
@@ -152,7 +161,7 @@ class MinioStorageService():
         *,
         file_name: str,
         bucket_name: str,
-        part_range: tuple[int, int] | None = None,
+        parts: Iterable[int] | None = None,
         upload_id: str | None = None,
         content_type: str | None = None,
         overwrite_allowed: bool = False,

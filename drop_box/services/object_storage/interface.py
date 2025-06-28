@@ -1,4 +1,5 @@
 from abc import ABC, abstractmethod
+from typing import Iterable
 from .types import SinglepartUploadLinksDict, MultipartUploadLinksDict
 
 class IStorageService(ABC):
@@ -7,7 +8,7 @@ class IStorageService(ABC):
         *,
         file_name,
         bucket_name: str,
-        duration_seconds: int,
+        allow_override: bool = False
     ) -> SinglepartUploadLinksDict:
         raise NotImplementedError
     
@@ -17,9 +18,9 @@ class IStorageService(ABC):
         file_name: str,
         bucket_name: str,
         content_type: str,
-        part_range: tuple[int, int],
-        duration_seconds: int = 3600,
+        parts: Iterable[int],
         upload_id: str | None = None,
+        allow_override: bool = False
     ) -> MultipartUploadLinksDict:
         raise NotImplementedError
     
